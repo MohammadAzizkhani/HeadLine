@@ -79,6 +79,8 @@ using (var client = new HttpClient { BaseAddress = new Uri("https://api.ibtrader
     }
 }
 
+Console.WriteLine("Done !");
+Console.WriteLine("Press any key to continue ... ");
 Console.ReadKey();
 class Order
 {
