@@ -71,7 +71,7 @@ using (var client = new HttpClient { BaseAddress = new Uri("https://api.ibtrader
 
     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     var data = new Order { validity = 1, validityDate = null, price = price, volume = volume, side = 1, isin = isin, accountType = 1 };
-    while (DateTime.Now.Hour < 9 && DateTime.Now.Minute < 2)
+    while (DateTime.Now.Hour <= 9 && DateTime.Now.Minute <= 2)
     {
         var tasks = new int[100].Select(async x => await client.PostAsJsonAsync("api/v2/orders/NewOrder", data));
 
