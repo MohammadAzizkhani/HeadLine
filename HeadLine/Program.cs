@@ -6,6 +6,10 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 
 string token = string.Empty;
+Console.WriteLine("Please Enter National Code : ");
+string nationalCode = Console.ReadLine();
+Console.WriteLine("Please Enter Password : ");
+string password = Console.ReadLine();
 Console.WriteLine("Please Enter Isin : ");
 var isin = Console.ReadLine();
 Console.WriteLine("Please Enter Volume : ");
@@ -41,8 +45,8 @@ do
                     continue;
                 LoginRequestModel loginModel = new()
                 {
-                    loginName = "",
-                    password = "",
+                    loginName = nationalCode,
+                    password = password,
                     captcha = new Captcha
                     {
                         hash = captcha.hashedCaptcha,
