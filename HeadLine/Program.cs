@@ -1,10 +1,10 @@
-﻿using IronOcr;
+﻿using System.Diagnostics;
+using IronOcr;
 using System.Drawing;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-
 string token = string.Empty;
 Console.WriteLine("Please Enter National Code : ");
 string nationalCode = Console.ReadLine();
@@ -68,12 +68,11 @@ Console.WriteLine("token Get from api Successfully");
 Console.WriteLine("-------------------------------------------------------");
 using (var client = new HttpClient { BaseAddress = new Uri("https://api.ibtrader.ir/") })
 {
-
     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     var data = new Order { validity = 1, validityDate = null, price = price, volume = volume, side = 1, isin = isin, accountType = 1 };
-    while (DateTime.Now.Hour <= 9 && DateTime.Now.Minute <= 2)
+    while (DateTime.Now.TimeOfDay < new TimeSpan(9, 3, 0))
     {
-        var tasks = new int[100].Select(async x => await client.PostAsJsonAsync("api/v2/orders/NewOrder", data));
+        var tasks = new int[5000].Select(async x => await client.PostAsJsonAsync("api/v2/orders/NewOrder", data));
 
         await Task.WhenAll(tasks);
     }
