@@ -1,24 +1,28 @@
-﻿using System.Diagnostics;
-using IronOcr;
+﻿using IronOcr;
 using System.Drawing;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-string token = string.Empty;
-Console.WriteLine("Please Enter National Code : ");
-string nationalCode = Console.ReadLine();
-Console.WriteLine("Please Enter Password : ");
-string password = Console.ReadLine();
-Console.WriteLine("Please Enter Isin : ");
-var isin = Console.ReadLine();
-Console.WriteLine("Please Enter Volume : ");
-short volume = short.Parse(Console.ReadLine());
-Console.WriteLine("Please Enter Price : ");
-var price = int.Parse(Console.ReadLine());
+using Microsoft.Extensions.Configuration;
+var token = string.Empty;
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsetting.json")
+    .Build();
+var authUrl = configuration.GetSection("AuthenticationUrl");
+var baseUrl = configuration.GetSection("OnlineOrderingUrl");
+var userPass = configuration.GetSection("UserPass").Value.Split(';');
+var nationalCode = userPass[0];
+var password = userPass[1];
+var orderInfo = configuration.GetSection("OrderInfo").Value.Split(';');
+var price = int.Parse(orderInfo[0]);
+var isin = orderInfo[1];
+short volume = short.Parse(orderInfo[2]);
 do
 {
-    using (var client = new HttpClient { BaseAddress = new Uri("https://identity.ibtrader.ir") })
+    using (var client = new HttpClient { BaseAddress = new Uri(authUrl.Value) })
     {
         var captchaResponse = await client.GetAsync("api/Captcha/GetCaptcha");
         var captcha = await JsonSerializer.DeserializeAsync<CaptchaDto>(await captchaResponse.Content.ReadAsStreamAsync());
@@ -55,7 +59,8 @@ do
                     }
                 };
 
-                var loginResponse = await client.PostAsJsonAsync("api/v2/accounts/login", loginModel);
+                var loginResponse = await client.PostAsync("api/v2/accounts/login",
+                    new StringContent(JsonSerializer.Serialize(loginModel), Encoding.UTF8, "application/json"));
 
                 var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(await loginResponse.Content.ReadAsStringAsync());
 
@@ -66,7 +71,7 @@ do
 } while (string.IsNullOrWhiteSpace(token));
 Console.WriteLine("token Get from api Successfully");
 Console.WriteLine("-------------------------------------------------------");
-using (var client = new HttpClient { BaseAddress = new Uri("https://api.ibtrader.ir/") })
+using (var client = new HttpClient { BaseAddress = new Uri(baseUrl.Value) })
 {
     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     var data = new Order { validity = 1, validityDate = null, price = price, volume = volume, side = 1, isin = isin, accountType = 1 };
