@@ -1,11 +1,10 @@
-﻿using IronOcr;
-using System.Drawing;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
+using Tesseract;
 var token = string.Empty;
 var configuration = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -21,55 +20,47 @@ var price = int.Parse(orderInfo[0]);
 var isin = orderInfo[1];
 short volume = short.Parse(orderInfo[2]);
 byte side = byte.Parse(orderInfo[3]);
-do
+using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default))
 {
-    using (var client = new HttpClient { BaseAddress = new Uri(authUrl.Value) })
+    engine.SetVariable("tessedit_char_whitelist", "0123456789");
+    engine.SetVariable("tessedit_char_blacklist", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    do
     {
-        var captchaResponse = await client.GetAsync("api/Captcha/GetCaptcha");
-        var captcha = await JsonSerializer.DeserializeAsync<CaptchaDto>(await captchaResponse.Content.ReadAsStreamAsync());
-        var imageData = Convert.FromBase64String(captcha.captchaByteData);
-        using (var memoryStream = new MemoryStream(imageData, 0, imageData.Length))
+        using (var client = new HttpClient { BaseAddress = new Uri(authUrl.Value) })
         {
-            var ocr = new IronTesseract
+            var captchaResponse = await client.GetAsync("api/Captcha/GetCaptcha");
+            var captcha = await JsonSerializer.DeserializeAsync<CaptchaDto>(await captchaResponse.Content.ReadAsStreamAsync());
+            var imageData = Convert.FromBase64String(captcha.captchaByteData);
+            using (var image = Pix.LoadFromMemory(imageData))
             {
-                Language = OcrLanguage.EnglishBest,
-                Configuration = new TesseractConfiguration
+                using (var page = engine.Process(image, PageSegMode.SingleLine))
                 {
-                    ReadBarCodes = false,
-                    WhiteListCharacters = "0123456789",
-                    BlackListCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
-                    PageSegmentationMode = TesseractPageSegmentationMode.SingleLine,
-                    RenderSearchablePdfsAndHocr = false,
-                }
-            };
-            using (OcrInput ocrInput = new())
-            {
-                ocrInput.AddImage(Image.FromStream(memoryStream));
-                var captchaValue = ocr.Read(ocrInput);
-                if (!Regex.IsMatch(captchaValue.Text, @"\d{5}"))
-                    continue;
-                LoginRequestModel loginModel = new()
-                {
-                    loginName = nationalCode,
-                    password = password,
-                    captcha = new Captcha
+                    var captchaText = page.GetText().Trim();
+                    if (!Regex.IsMatch(captchaText, @"\d{5}"))
+                        continue;
+                    LoginRequestModel loginModel = new()
                     {
-                        hash = captcha.hashedCaptcha,
-                        salt = captcha.salt,
-                        value = captchaValue.Text
-                    }
-                };
+                        loginName = nationalCode,
+                        password = password,
+                        captcha = new Captcha
+                        {
+                            hash = captcha.hashedCaptcha,
+                            salt = captcha.salt,
+                            value = captchaText
+                        }
+                    };
+                    var loginResponse = await client.PostAsync("api/v2/accounts/login",
+                        new StringContent(JsonSerializer.Serialize(loginModel), Encoding.UTF8, "application/json"));
 
-                var loginResponse = await client.PostAsync("api/v2/accounts/login",
-                    new StringContent(JsonSerializer.Serialize(loginModel), Encoding.UTF8, "application/json"));
+                    var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(await loginResponse.Content.ReadAsStringAsync());
 
-                var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(await loginResponse.Content.ReadAsStringAsync());
-
-                token = tokenResponse?.token ?? string.Empty;
+                    token = tokenResponse?.token ?? string.Empty;
+                }
             }
         }
-    }
-} while (string.IsNullOrWhiteSpace(token));
+    } while (string.IsNullOrWhiteSpace(token));
+}
+
 Console.WriteLine("token Get from api Successfully");
 Console.WriteLine("-------------------------------------------------------");
 using (var client = new HttpClient { BaseAddress = new Uri(baseUrl.Value) })
