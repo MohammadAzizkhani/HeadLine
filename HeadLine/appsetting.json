@@ -3,7 +3,7 @@
   //"AuthenticationUrl": "https://identity.lomino.ir",
   "OnlineOrderingUrl": "https://api.ibtrader.ir/",
   //"OnlineOrderingUrl": "https://core.lomino.ir/",
-  "UserPass": "0018508375;1234qwerASDF!@#$",
+  "UserPass": ";",
   //price;Isin;volume;side
   //side => 1 Buy 2 Sell
   "OrderInfo": "8640;IRO1NOSH0001;4000;1"
