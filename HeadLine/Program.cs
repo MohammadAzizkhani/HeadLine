@@ -67,14 +67,14 @@ using (var client = new HttpClient { BaseAddress = new Uri(baseUrl.Value) })
 {
     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     var data = new Order { validity = 1, validityDate = null, price = price, volume = volume, side = side, isin = isin, accountType = 1 };
-    while (DateTime.Now.TimeOfDay < new TimeSpan(9, 3, 0))
+    while (DateTime.Now.TimeOfDay < new TimeSpan(8, 45, 13))
     {
         //await Parallel.ForEachAsync(new bool[1000], async (item, cToken) =>
         //{
         //    await client.PostAsJsonAsync("api/v2/orders/NewOrder", data, cToken);
         //});
 
-        var tasks = new bool[5000].Select(async x => await client.PostAsJsonAsync("api/v2/orders/NewOrder", data));
+        var tasks = new bool[1000].Select(async x => await client.PostAsJsonAsync("api/v2/orders/NewOrder", data));
 
         await Task.WhenAll(tasks);
     }
