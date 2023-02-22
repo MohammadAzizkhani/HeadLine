@@ -67,7 +67,7 @@ using (var client = new HttpClient { BaseAddress = new Uri(baseUrl.Value) })
 {
     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     var data = new Order { validity = 1, validityDate = null, price = price, volume = volume, side = side, isin = isin, accountType = 1 };
-    while (DateTime.Now.TimeOfDay < new TimeSpan(8, 45, 13))
+    while (true)
     {
         //await Parallel.ForEachAsync(new bool[1000], async (item, cToken) =>
         //{
@@ -79,10 +79,6 @@ using (var client = new HttpClient { BaseAddress = new Uri(baseUrl.Value) })
         await Task.WhenAll(tasks);
     }
 }
-
-Console.WriteLine("Done !");
-Console.WriteLine("Press any key to continue ... ");
-Console.ReadKey();
 class Order
 {
     public byte validity { get; set; }
